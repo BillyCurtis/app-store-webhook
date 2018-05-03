@@ -1,10 +1,10 @@
 const { Collection, RichEmbed, Util, WebhookClient } = require("discord.js")
 const fs = require("fs")
 const config = require("./config")
-const data = require("./data.json")
 const webhook = new WebhookClient(config.id, config.token, { disableEveryone: true })
 const store = require("app-store-scraper")
 const { EventEmitter } = require("events")
+let data = require("./data.json")
 
 console.log("[WEBHOOK] Ready!")
 
@@ -26,14 +26,18 @@ const check = setInterval(async() => {
                     id: res.id,
                     appId: res.appId,
                     released: res.released,
-                    updated: res.updated,
-                    version: res.version
+                    releases: [{
+                        updated: res.updated,
+                        version: res.version
+                    }]
                 }
                 await fs.writeFileSync("./data.json", JSON.stringify(data))
                 console.log("[DATA] Wrote to data.json")
             }
-            if (data[res.id].updated === res.updated) continue
-            apps.emit("update", res)
+            if (data[res.id].releases.find(r => r.updated !== res.updated && r.version !== res.version))
+                apps.emit("update", res)
+            else
+                continue
         } catch (err) {
             apps.emit("error", err)
             if (err.toString() === "Error: App not found (404)") errors.set(app, { error: true })
@@ -44,13 +48,10 @@ const check = setInterval(async() => {
 
 apps.on("update", async app => {
     console.log(`[${app.appId}] New update`)
-    data[app.id] = {
-        id: app.id,
-        appId: app.appId,
-        released: app.released,
+    data[app.id].releases.push({
         updated: app.updated,
         version: app.version
-    }
+    })
     await fs.writeFileSync("./data.json", JSON.stringify(data))
     console.log("[DATA] Wrote to data.json")
 

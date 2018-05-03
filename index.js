@@ -26,10 +26,7 @@ const check = setInterval(async() => {
                     id: res.id,
                     appId: res.appId,
                     released: res.released,
-                    releases: [{
-                        updated: res.updated,
-                        version: res.version
-                    }]
+                    releases: []
                 }
                 await fs.writeFileSync("./data.json", JSON.stringify(data))
                 console.log("[DATA] Wrote to data.json")

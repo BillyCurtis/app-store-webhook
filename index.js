@@ -15,8 +15,9 @@ const errors = new Collection()
 for (const app of config.apps) errors.set(app, { error: false })
 
 const apps = new EventEmitter()
-const check = setInterval(async() => {
-    if (errors.every(e => e.error)) return clearInterval(check)
+let timeout
+async function check() {
+    if (errors.every(e => e.error)) return clearTimeout(timeout)
     for (const app of config.apps) {
         if (errors.get(app).error) continue
         try {
@@ -31,7 +32,7 @@ const check = setInterval(async() => {
                 await fs.writeFileSync("./data.json", JSON.stringify(data))
                 console.log("[DATA] Wrote to data.json")
             }
-            if (data[res.id].releases.find(r => r.updated !== res.updated && r.version !== res.version))
+            if (!data[res.id].releases.find(r => r.updated === res.updated && r.version === res.version))
                 apps.emit("update", res)
             else
                 continue
@@ -41,7 +42,9 @@ const check = setInterval(async() => {
             continue
         }
     }
-}, config.interval)
+    timeout = setTimeout(check, config.interval)
+}
+check()
 
 apps.on("update", async app => {
     console.log(`[${app.appId}] New update`)
